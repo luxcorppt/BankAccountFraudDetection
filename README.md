@@ -83,6 +83,7 @@ Best submission in Kaggle: 0.84635
 
 * [First Part Report](R/reportPart1.pdf)
 * [Final Report](Python/report.ipynb)
+* [Slides](presentation/slides.pdf)
 
 ### Stucture
 
