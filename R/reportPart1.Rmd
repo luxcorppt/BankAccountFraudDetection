@@ -1,0 +1,100 @@
+---
+title: "Report Part 1"
+author: "Andre Silva up201906559"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+setwd("~/GitHub/DF/DF_Project")
+#install.packages('xgboost')
+#install.packages('caret')
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(xgboost)
+library(caret) 
+```
+
+# Read Data
+```{r}
+train <- read_csv('../datasets/train.csv')
+test <- read_csv('../datasets/test.csv')
+```
+
+# Dealing with NAN Training data
+```{r}
+train$prev_address_months_count[train$prev_address_months_count == -1] <- NA
+train$current_address_months_count[train$current_address_months_count == -1] <- NA
+train$bank_months_count[train$bank_months_count == -1] <- NA
+train$customer_age[train$customer_age == -1] <- NA
+train$session_length_in_minutes[train$session_length_in_minutes == -1] <- NA
+train$device_distinct_emails_8w[train$device_distinct_emails_8w == -1] <- NA
+
+missing_props_train = sapply(train, function(x) mean(is.na(x)))
+
+over_threshold_train = missing_props_train[missing_props_train >= 0.6] # Remove coll with NA >= X
+
+train_noNA <- train[, !colnames(train) %in% names(over_threshold_train)]
+
+train_noNA <- drop_na(train_noNA)
+
+```
+
+# Replicating NAN process to Test data
+```{r}
+test$prev_address_months_count[test$prev_address_months_count == -1] <- NA
+test$current_address_months_count[test$current_address_months_count == -1] <- NA
+test$bank_months_count[test$bank_months_count == -1] <- NA
+test$customer_age[test$customer_age == -1] <- NA
+test$session_length_in_minutes[test$session_length_in_minutes == -1] <- NA
+test$device_distinct_emails_8w[test$device_distinct_emails_8w == -1] <- NA
+
+test_noNA <- test[, !colnames(test) %in% names(over_threshold_train)] # Remove the same columns as in train
+```
+
+# Separate X,y
+```{r}
+X_train = data.matrix(train_noNA[, !colnames(train_noNA) %in% c("is_fraud")])
+y_train = train_noNA$is_fraud
+  
+X_test = data.matrix(test_noNA)
+```
+
+# XGBoost
+```{r}
+xgboost_train = xgb.DMatrix(data=X_train, label=y_train)
+xgboost_test = xgb.DMatrix(data=X_test)
+
+model <- xgboost(data = xgboost_train, max.depth=2, nrounds=50, objective = "reg:logistic")
+```
+
+```{r}
+pred_test = predict(model, xgboost_test)
+
+is_fraud = factor(round(pred_test, digits=2))
+
+id = test$id
+
+df <- data.frame(id , is_fraud)
+colnames(df) <- c("id", "is_fraud")
+
+i = 1
+f = "../predictions/R_attempt1.csv"
+while (file.exists(f)){
+  i = i + 1
+  f = paste(c("../predictions/R_attempt", i, ".csv"), collapse="")
+}
+f
+
+write.csv(df, f, row.names = FALSE)
+is_fraud
+```
+
+
