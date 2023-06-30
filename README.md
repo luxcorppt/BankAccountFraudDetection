@@ -70,6 +70,7 @@ The grading of the practical assignment is distributed as follows:
 ## Deliver
 
 Best submission in Kaggle: 0.84635
+Grade: 15
 
 ### Developer
 
